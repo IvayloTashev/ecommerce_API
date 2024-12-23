@@ -19,18 +19,38 @@ router.post("/register", async (req, res) => {
             return res.status(400).json({ message: err.message });
         };
 
-        if (!req.body.username || !req.body.email || !req.body.password) {
-            return res.status(400).json({ message: "Username, email, and password are required" });
-        };
-
         if (err.code === 11000) {
             return res.status(409).json({ message: "Username or Email already exists" });
         };
 
         return res.status(500).json({ message: "Server error" });
     };
-
 });
+
+//Login
+router.post("/login", async (req, res) => {
+    try {
+        const user = await User.findOne({ email: req.body.email });
+
+        if (!user) {
+            return res.status(401).json("Wrong email or password")
+        };
+
+        const hashedPassword = CryptoJS.AES.decrypt(user.password, process.env.PASSWORD_SECRET);
+        const originalPass = hashedPassword.toString(CryptoJS.enc.Utf8);
+
+        if (originalPass !== req.body.password) {
+            return res.status(401).json("Wrong email or password")
+        };
+
+        const { password, ...others } = user._doc;
+
+        res.status(200).json(others);
+
+    } catch (err) {
+        return res.status(500).json("Server error");
+    }
+})
 
 
 module.exports = router;
